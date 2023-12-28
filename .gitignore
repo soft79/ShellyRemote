@@ -1,0 +1,3 @@
+wifi_credentials.private.h
+.*
+!/.gitignore
