@@ -12,6 +12,8 @@
 
 //Configuration
 const int IR_RECEIVE_PIN = G25;
+const int REPEAT_MILLIS = 250;
+const long LONG_PRESS_TIME = 1000;
 
 const String DeviceUrls[] = {
   "http://0:0@192.168.2.113/light/0/", //Woonkamer lamp
@@ -22,10 +24,15 @@ const String DeviceUrls[] = {
   "http://0:0@192.168.2.104/relay/0/" //Tuin LEDs
 };
 
+const byte Numbers[] = {0x52, 0x16, 0x19, 0x0D, 0x0C, 0x18, 0x5E, 0x08, 0x1C, 0x5A};
+
 
 //Global variables
 bool WasConnected = false;
 int brightness = 0;String DeviceUrl = DeviceUrls[0];
+unsigned long StartPressMillis = 0;
+unsigned long RepeatMillis = 0;
+uint16_t StartPressCommand = 0;
 
 WiFiMulti wifiMulti;
 HTTPClient http;
@@ -63,6 +70,12 @@ void loop() {
   if (isConnected) {
     if (IrReceiver.decode()) {
       ExecuteIRCommand();
+    } else {
+      if (StartPressMillis > 0 && millis() - RepeatMillis > REPEAT_MILLIS) {
+        StartPressMillis = 0;
+        Serial.print("Stop press millis at ");
+        Serial.println( millis() );
+      }
     }
     IrReceiver.resume();
   }
@@ -82,11 +95,28 @@ void ExecuteIRCommand() {
     return;
   }
 
-  IrReceiver.printIRResultShort(&Serial);  
+  //IrReceiver.printIRResultShort(&Serial);  
 
   bool isRepeat = IrReceiver.decodedIRData.flags & IRDATA_FLAGS_IS_REPEAT;
   uint16_t command = IrReceiver.decodedIRData.command;
-  Serial.print("Receive: ");  Serial.print( command );  if (isRepeat) { Serial.print(" REPEAT"); } Serial.println();
+  //Serial.print("Receive: ");  Serial.print( command );  if (isRepeat) { Serial.print(" REPEAT"); } Serial.println();
+
+  unsigned long now = millis();
+  if (!isRepeat) {
+    StartPressCommand = command;
+    StartPressMillis = now;
+    Serial.print("StartPress at "); Serial.println( StartPressMillis);
+  }
+ 
+
+  bool isLongPress = now - StartPressMillis >= LONG_PRESS_TIME && RepeatMillis - StartPressMillis < LONG_PRESS_TIME;
+  bool isNumber = command != 0x52 && ArrayContains(command, Numbers, sizeof(Numbers) / sizeof(Numbers[0])); //1 .. 9
+  
+  if (isLongPress) {
+    Serial.println(RepeatMillis - StartPressMillis);
+    Serial.println(" LONG PRESS");
+  }
+   RepeatMillis = now;
 
 //0x40=OK, 0x43=Right, 0x44=Left, 0x46=Up, ox15=Down
 //0x52=0, 0x16=1, 0x19=2, 0x0D=3, 0x0C=4, 0x18=5, 0x5E=6, 0x08=7, 0x1C=8, 0x5A=9
@@ -122,6 +152,11 @@ void ExecuteIRCommand() {
       brightness = 100;
       SetBrightness(DeviceUrl, brightness);
     }
+  }
+
+  //Long press number
+  if (isLongPress && isNumber) {
+    ToggleLampje(DeviceUrl);
   }
 
   //Dim down
@@ -162,6 +197,14 @@ void SetBrightness(String url, int brightness)
 void ToggleLampje(String url)
 {
   String json = GetUrl(url + "?turn=toggle");
+}
+
+bool ArrayContains(byte val, const byte arr[], byte n) {
+  for(size_t i = 0; i < n; i++) {
+        if(arr[i] == val)
+            return true;
+    }
+    return false;
 }
 
 String GetUrl(String url) {
