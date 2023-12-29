@@ -21,6 +21,7 @@
 
 - The onboard LED shows the current WIFI status. GREEN is connected, RED is disconnected.
 - When a supported IR command is received, the corresponding http command will be send to the Shelly.
+  The `?brightness=xxx` or `?turn=toggle` query parameters are appended to the DeviceUrl to control the Shelly.
 
 ## Configuration
 
