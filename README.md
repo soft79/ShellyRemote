@@ -12,7 +12,7 @@
 ## Remote Control
 
 - Short press 1..9 to select the device to control
-- Long press 1..9 to toggle power of a device
+- Long press 1..9 to select the device and immediately toggle power
 - Hold LEFT/RIGHT or DOWN/UP to decrease or increase the brightness of the selected device
 - Press OK to toggle power of the selected device
 - Press "*", "0" or "#" to set brightness to MIN, MIDDLE, MAX (1, 50, 100%)
