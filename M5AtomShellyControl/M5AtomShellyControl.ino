@@ -3,7 +3,7 @@
 
 #include "config_remote.h"
 #include "config_shelly.h"
-#include "config_wifi.private.h"
+#include "config_wifi.h"
 
 #include <IRremote.h>
 #include <WiFi.h>
@@ -33,13 +33,25 @@ void setup() {
 
   while (!Serial) {} // wait for serial port to connect. Needed for native USB port only
 
-  IrReceiver.begin(IR_RECEIVE_PIN, ENABLE_LED_FEEDBACK);
+  IrReceiver.begin(IR_RECEIVE_PIN, DISABLE_LED_FEEDBACK);
   wifiMulti.addAP(WIFI_SSID, WIFI_PASSWORD); 
 }
 
 void loop() {
-  int connectTimeoutMs = 1000;
-  bool isConnected = wifiMulti.run(connectTimeoutMs) == WL_CONNECTED;
+  if (!WifiConnection()) return;
+
+  if (IrReceiver.decode()) {
+    ExecuteIRCommand();
+  }
+  IrReceiver.resume();
+}
+
+/***
+ * Keep WIFI alive and update status LED to RED or GREEN
+ * Returns true if connection is valid
+ */
+bool WifiConnection() {
+  bool isConnected = wifiMulti.run(WIFI_TIMEOUT_MILLIS) == WL_CONNECTED;
   
   //Notify connection change
   if (isConnected != WasConnected) {
@@ -55,13 +67,7 @@ void loop() {
       Serial.println("WiFi connection lost!");
     }
   }
-
-  if (isConnected) {
-    if (IrReceiver.decode()) {
-      ExecuteIRCommand();
-    }
-    IrReceiver.resume();
-  }
+  return isConnected;
 }
 
 void ExecuteIRCommand() {
