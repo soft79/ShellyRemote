@@ -85,7 +85,7 @@ void ExecuteIRCommand() {
     return;
   }
 
-  //IrReceiver.printIRResultShort(&Serial);  
+  IrReceiver.printIRResultShort(&Serial);  
 
   bool isRepeat = IrReceiver.decodedIRData.flags & IRDATA_FLAGS_IS_REPEAT;
   uint16_t command = IrReceiver.decodedIRData.command;
